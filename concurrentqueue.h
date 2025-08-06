@@ -210,8 +210,6 @@ namespace moodycamel { namespace details {
 #endif
 #endif
 
-#define MOODYCAMEL_NOEXCEPT_DEQUEUE(dequeueMode, type, valueType, expr) dequeueMode ?  MOODYCAMEL_NOEXCEPT_CTOR(type, valueType, expr) : MOODYCAMEL_NOEXCEPT_ASSIGN(type, valueType, expr)
-
 #ifndef MOODYCAMEL_CPP11_THREAD_LOCAL_SUPPORTED
 #ifdef MCDBGQ_USE_RELACY
 #define MOODYCAMEL_CPP11_THREAD_LOCAL_SUPPORTED
@@ -556,7 +554,21 @@ namespace details
 	{
 		new (&dest) T(std::move(src));
 	}
-	
+
+	template <bool is_dest_constructed, typename T>
+	inline constexpr typename std::enable_if<is_dest_constructed, bool>::type
+		is_noexcept_transfer()
+	{
+		return MOODYCAMEL_NOEXCEPT_ASSIGN(T, T&&, std::declval<T&>() = std::declval<T&&>());
+	}
+
+	template <bool is_dest_constructed, typename T>
+	inline constexpr typename std::enable_if<!is_dest_constructed, bool>::type
+		is_noexcept_transfer()
+	{
+		return MOODYCAMEL_NOEXCEPT_CTOR(T, T&&, new (&std::declval<T&>()) T(std::declval<T&&>()));
+	}
+
 	template<typename It>
 	static inline auto deref_noexcept(It& it) MOODYCAMEL_NOEXCEPT -> decltype(*it)
 	{
@@ -686,7 +698,7 @@ struct ProducerToken
 		swap(other);
 		return *this;
 	}
-	
+
 	void swap(ProducerToken& other) MOODYCAMEL_NOEXCEPT
 	{
 		std::swap(producer, other.producer);
@@ -715,7 +727,6 @@ struct ProducerToken
 			producer->inactive.store(true, std::memory_order_release);
 		}
 	}
-	
 
 	// Disable copying and assignment
 	ProducerToken(ProducerToken const&) MOODYCAMEL_DELETE_FUNCTION;
@@ -728,6 +739,7 @@ private:
 protected:
 	details::ConcurrentQueueProducerTypelessBase* producer;
 };
+
 
 struct ConsumerToken
 {
@@ -2034,8 +2046,8 @@ private:
 					auto block = localBlockIndex->entries[(localBlockIndexHead + offset) & (localBlockIndex->size - 1)].block;
 					
 					// Dequeue
-					auto& el = *((*block)[index]);
-					if (!MOODYCAMEL_NOEXCEPT_DEQUEUE(dequeueMode, T, T&&, details::transfer_to<dequeueMode>(element, el))) {
+					auto& el = *((*block)[index]);			
+					if (!details::is_noexcept_transfer<dequeueMode,T>()) {
 						// Make sure the element is still fully dequeued and destroyed even if transferred
 						// throws
 						struct Guard {
@@ -2301,7 +2313,8 @@ private:
 						index_t endIndex = (index & ~static_cast<index_t>(BLOCK_SIZE - 1)) + static_cast<index_t>(BLOCK_SIZE);
 						endIndex = details::circular_less_than<index_t>(firstIndex + static_cast<index_t>(actualCount), endIndex) ? firstIndex + static_cast<index_t>(actualCount) : endIndex;
 						auto block = localBlockIndex->entries[indexIndex].block;
-						if (MOODYCAMEL_NOEXCEPT_DEQUEUE(dequeueMode, T, T&&, details::transfer_to<dequeueMode>(details::deref_noexcept(itemFirst), *(*block)[index]))) {
+						
+						if (details::is_noexcept_transfer<dequeueMode,T>()) {
 							while (index != endIndex) {
 								auto& el = *((*block)[index]);
 								details::transfer_to<dequeueMode>(*itemFirst++, el);
@@ -2585,7 +2598,7 @@ private:
 					auto block = entry->value.load(std::memory_order_relaxed);
 					auto& el = *((*block)[index]);
 					
-					if (!MOODYCAMEL_NOEXCEPT_DEQUEUE(dequeueMode, T, T&&, details::transfer_to<dequeueMode>(element, el))) {
+					if (!details::is_noexcept_transfer<dequeueMode,T>()) {
 #ifdef MCDBGQ_NOLOCKFREE_IMPLICITPRODBLOCKINDEX
 						// Note: Acquiring the mutex with every dequeue instead of only when a block
 						// is released is very sub-optimal, but it is, after all, purely debug code.
@@ -2827,8 +2840,8 @@ private:
 						endIndex = details::circular_less_than<index_t>(firstIndex + static_cast<index_t>(actualCount), endIndex) ? firstIndex + static_cast<index_t>(actualCount) : endIndex;
 						
 						auto entry = localBlockIndex->index[indexIndex];
-						auto block = entry->value.load(std::memory_order_relaxed);	
-						if (MOODYCAMEL_NOEXCEPT_DEQUEUE(dequeueMode, T, T&&, details::transfer_to<dequeueMode>(details::deref_noexcept(itemFirst), *(*block)[index]))) {
+						auto block = entry->value.load(std::memory_order_relaxed);				
+						if (details::is_noexcept_transfer<dequeueMode, T>()) {
 							while (index != endIndex) {
 								auto& el = *((*block)[index]);
 								details::transfer_to<dequeueMode>(*itemFirst++, el);
