@@ -1727,7 +1727,7 @@ private:
 		
 		virtual ~ProducerBase() { }
 		
-		template<DequeueMode dequeueMode,typename U>
+		template<DequeueMode dequeueMode, typename U>
 		inline bool dequeue(U& element)
 		{
 			if (isExplicit) {
@@ -1738,7 +1738,7 @@ private:
 			}
 		}
 		
-		template<DequeueMode dequeueMode,typename It>
+		template<DequeueMode dequeueMode, typename It>
 		inline size_t dequeue_bulk(It& itemFirst, size_t max)
 		{
 			if (isExplicit) {
@@ -1968,7 +1968,7 @@ private:
 			return true;
 		}
 		
-		template<DequeueMode dequeueMode,typename U>
+		template<DequeueMode dequeueMode, typename U>
 		bool dequeue(U& element)
 		{
 			auto tail = this->tailIndex.load(std::memory_order_relaxed);
@@ -2261,7 +2261,7 @@ private:
 			return true;
 		}
 		
-		template<DequeueMode dequeueMode,typename It>
+		template<DequeueMode dequeueMode, typename It>
 		size_t dequeue_bulk(It& itemFirst, size_t max)
 		{
 			auto tail = this->tailIndex.load(std::memory_order_relaxed);
@@ -2564,7 +2564,7 @@ private:
 			return true;
 		}
 		
-		template<DequeueMode dequeueMode,typename U>
+		template<DequeueMode dequeueMode, typename U>
 		bool dequeue(U& element)
 		{
 			// See ExplicitProducer::dequeue for rationale and explanation
@@ -2793,7 +2793,7 @@ private:
 #pragma warning(pop)
 #endif
 		
-		template<DequeueMode dequeueMode,typename It>
+		template<DequeueMode dequeueMode, typename It>
 		size_t dequeue_bulk(It& itemFirst, size_t max)
 		{
 			auto tail = this->tailIndex.load(std::memory_order_relaxed);
