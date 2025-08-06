@@ -18,7 +18,6 @@
 
 namespace moodycamel
 {
-
 // This is a blocking version of the queue. It has an almost identical interface to
 // the normal non-blocking version, with the addition of various wait_dequeue() methods
 // and the removal of producer-specific dequeue methods.
@@ -291,7 +290,7 @@ public:
 	// Returns false if all producer streams appeared empty at the time they
 	// were checked (so, the queue is likely but not guaranteed to be empty).
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename U>
+	template<DequeueMode dequeueMode = assign, typename U>
 	inline bool try_dequeue(U& item)
 	{
 		if (sema->tryWait()) {
@@ -307,7 +306,7 @@ public:
 	// Returns false if all producer streams appeared empty at the time they
 	// were checked (so, the queue is likely but not guaranteed to be empty).
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename U>
+	template<DequeueMode dequeueMode = assign, typename U>
 	inline bool try_dequeue(consumer_token_t& token, U& item)
 	{
 		if (sema->tryWait()) {
@@ -324,7 +323,7 @@ public:
 	// Returns 0 if all producer streams appeared empty at the time they
 	// were checked (so, the queue is likely but not guaranteed to be empty).
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename It>
+	template<DequeueMode dequeueMode = assign, typename It>
 	inline size_t try_dequeue_bulk(It itemFirst, size_t max)
 	{
 		size_t count = 0;
@@ -340,7 +339,7 @@ public:
 	// Returns 0 if all producer streams appeared empty at the time they
 	// were checked (so, the queue is likely but not guaranteed to be empty).
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename It>
+	template<DequeueMode dequeueMode = assign, typename It>
 	inline size_t try_dequeue_bulk(consumer_token_t& token, It itemFirst, size_t max)
 	{
 		size_t count = 0;
@@ -356,7 +355,7 @@ public:
 	// Blocks the current thread until there's something to dequeue, then
 	// dequeues it.
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename U>
+	template<DequeueMode dequeueMode = assign, typename U>
 	inline void wait_dequeue(U& item)
 	{
 		while (!sema->wait()) {
@@ -374,7 +373,7 @@ public:
 	// Using a negative timeout indicates an indefinite timeout,
 	// and is thus functionally equivalent to calling wait_dequeue.
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename U>
+	template<DequeueMode dequeueMode = assign, typename U>
 	inline bool wait_dequeue_timed(U& item, std::int64_t timeout_usecs)
 	{
 		if (!sema->wait(timeout_usecs)) {
@@ -390,7 +389,7 @@ public:
 	// or the timeout expires. Returns false without setting `item` if the
     // timeout expires, otherwise assigns to `item` and returns true.
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename U, typename Rep, typename Period>
+	template<DequeueMode dequeueMode = assign, typename U, typename Rep, typename Period>
 	inline bool wait_dequeue_timed(U& item, std::chrono::duration<Rep, Period> const& timeout)
     {
         return wait_dequeue_timed<dequeueMode>(item, std::chrono::duration_cast<std::chrono::microseconds>(timeout).count());
@@ -399,7 +398,7 @@ public:
 	// Blocks the current thread until there's something to dequeue, then
 	// dequeues it using an explicit consumer token.
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename U>
+	template<DequeueMode dequeueMode = assign, typename U>
 	inline void wait_dequeue(consumer_token_t& token, U& item)
 	{
 		while (!sema->wait()) {
@@ -417,7 +416,7 @@ public:
 	// Using a negative timeout indicates an indefinite timeout,
 	// and is thus functionally equivalent to calling wait_dequeue.
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename U>
+	template<DequeueMode dequeueMode = assign, typename U>
 	inline bool wait_dequeue_timed(consumer_token_t& token, U& item, std::int64_t timeout_usecs)
 	{
 		if (!sema->wait(timeout_usecs)) {
@@ -433,7 +432,7 @@ public:
 	// or the timeout expires. Returns false without setting `item` if the
     // timeout expires, otherwise assigns to `item` and returns true.
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename U, typename Rep, typename Period>
+	template<DequeueMode dequeueMode = assign, typename U, typename Rep, typename Period>
 	inline bool wait_dequeue_timed(consumer_token_t& token, U& item, std::chrono::duration<Rep, Period> const& timeout)
     {
         return wait_dequeue_timed<dequeueMode>(token, item, std::chrono::duration_cast<std::chrono::microseconds>(timeout).count());
@@ -444,7 +443,7 @@ public:
 	// always be at least one (this method blocks until the queue
 	// is non-empty) and at most max.
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename It>
+	template<DequeueMode dequeueMode = assign, typename It>
 	inline size_t wait_dequeue_bulk(It itemFirst, size_t max)
 	{
 		size_t count = 0;
@@ -462,7 +461,7 @@ public:
 	// Using a negative timeout indicates an indefinite timeout,
 	// and is thus functionally equivalent to calling wait_dequeue_bulk.
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename It>
+	template<DequeueMode dequeueMode = assign, typename It>
 	inline size_t wait_dequeue_bulk_timed(It itemFirst, size_t max, std::int64_t timeout_usecs)
 	{
 		size_t count = 0;
@@ -478,7 +477,7 @@ public:
 	// be 0 if the timeout expires while waiting for elements,
 	// and at most max.
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename It, typename Rep, typename Period>
+	template<DequeueMode dequeueMode = assign, typename It, typename Rep, typename Period>
 	inline size_t wait_dequeue_bulk_timed(It itemFirst, size_t max, std::chrono::duration<Rep, Period> const& timeout)
     {
         return wait_dequeue_bulk_timed<dequeueMode,It&>(itemFirst, max, std::chrono::duration_cast<std::chrono::microseconds>(timeout).count());
@@ -489,7 +488,7 @@ public:
 	// always be at least one (this method blocks until the queue
 	// is non-empty) and at most max.
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename It>
+	template<DequeueMode dequeueMode = assign, typename It>
 	inline size_t wait_dequeue_bulk(consumer_token_t& token, It itemFirst, size_t max)
 	{
 		size_t count = 0;
@@ -507,7 +506,7 @@ public:
 	// Using a negative timeout indicates an indefinite timeout,
 	// and is thus functionally equivalent to calling wait_dequeue_bulk.
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename It>
+	template<DequeueMode dequeueMode = assign, typename It>
 	inline size_t wait_dequeue_bulk_timed(consumer_token_t& token, It itemFirst, size_t max, std::int64_t timeout_usecs)
 	{
 		size_t count = 0;
@@ -523,7 +522,7 @@ public:
 	// be 0 if the timeout expires while waiting for elements,
 	// and at most max.
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename It, typename Rep, typename Period>
+	template<DequeueMode dequeueMode = assign, typename It, typename Rep, typename Period>
 	inline size_t wait_dequeue_bulk_timed(consumer_token_t& token, It itemFirst, size_t max, std::chrono::duration<Rep, Period> const& timeout)
     {
         return wait_dequeue_bulk_timed<dequeueMode,It&>(token, itemFirst, max, std::chrono::duration_cast<std::chrono::microseconds>(timeout).count());

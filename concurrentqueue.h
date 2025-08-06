@@ -206,9 +206,11 @@ namespace moodycamel { namespace details {
 #else
 #define MOODYCAMEL_NOEXCEPT noexcept
 #define MOODYCAMEL_NOEXCEPT_CTOR(type, valueType, expr) noexcept(expr)
-#define MOODYCAMEL_NOEXCEPT_MOVE(type, valueType, expr) noexcept(expr)
+#define MOODYCAMEL_NOEXCEPT_ASSIGN(type, valueType, expr) noexcept(expr)
 #endif
 #endif
+
+#define MOODYCAMEL_NOEXCEPT_DEQUEUE(dequeueMode, type, valueType, expr) dequeueMode ?  MOODYCAMEL_NOEXCEPT_CTOR(type, valueType, expr) : MOODYCAMEL_NOEXCEPT_ASSIGN(type, valueType, expr)
 
 #ifndef MOODYCAMEL_CPP11_THREAD_LOCAL_SUPPORTED
 #ifdef MCDBGQ_USE_RELACY
@@ -714,6 +716,7 @@ struct ProducerToken
 		}
 	}
 	
+
 	// Disable copying and assignment
 	ProducerToken(ProducerToken const&) MOODYCAMEL_DELETE_FUNCTION;
 	ProducerToken& operator=(ProducerToken const&) MOODYCAMEL_DELETE_FUNCTION;
@@ -1135,7 +1138,7 @@ public:
 	// Returns false if all producer streams appeared empty at the time they
 	// were checked (so, the queue is likely but not guaranteed to be empty).
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename U>
+	template<DequeueMode dequeueMode = assign, typename U>
 	bool try_dequeue(U& item)
 	{
 		// Instead of simply trying each producer in turn (which could cause needless contention on the first
@@ -1178,7 +1181,7 @@ public:
 	// under contention, but will give more predictable results in single-threaded
 	// consumer scenarios. This is mostly only useful for internal unit tests.
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename U>
+	template<DequeueMode dequeueMode = assign, typename U>
 	bool try_dequeue_non_interleaved(U& item)
 	{
 		for (auto ptr = producerListTail.load(std::memory_order_acquire); ptr != nullptr; ptr = ptr->next_prod()) {
@@ -1193,7 +1196,7 @@ public:
 	// Returns false if all producer streams appeared empty at the time they
 	// were checked (so, the queue is likely but not guaranteed to be empty).
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename U>
+	template<DequeueMode dequeueMode = assign, typename U>
 	bool try_dequeue(consumer_token_t& token, U& item)
 	{
 		// The idea is roughly as follows:
@@ -1241,7 +1244,7 @@ public:
 	// Returns 0 if all producer streams appeared empty at the time they
 	// were checked (so, the queue is likely but not guaranteed to be empty).
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename It>
+	template<DequeueMode dequeueMode = assign, typename It>
 	size_t try_dequeue_bulk(It itemFirst, size_t max)
 	{
 		size_t count = 0;
@@ -1259,7 +1262,7 @@ public:
 	// Returns 0 if all producer streams appeared empty at the time they
 	// were checked (so, the queue is likely but not guaranteed to be empty).
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename It>
+	template<DequeueMode dequeueMode = assign, typename It>
 	size_t try_dequeue_bulk(consumer_token_t& token, It itemFirst, size_t max)
 	{
 		if (token.desiredProducer == nullptr || token.lastKnownGlobalOffset != globalExplicitConsumerOffset.load(std::memory_order_relaxed)) {
@@ -1310,7 +1313,7 @@ public:
 	// Returns false if the producer's queue appeared empty at the time it
 	// was checked (so, the queue is likely but not guaranteed to be empty).
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename U>
+	template<DequeueMode dequeueMode = assign, typename U>
 	inline bool try_dequeue_from_producer(producer_token_t const& producer, U& item)
 	{
 		return static_cast<ExplicitProducer*>(producer.producer)->template dequeue<dequeueMode>(item);
@@ -1323,7 +1326,7 @@ public:
 	// Returns 0 if the producer's queue appeared empty at the time it
 	// was checked (so, the queue is likely but not guaranteed to be empty).
 	// Never allocates. Thread-safe.
-	template<DequeueMode dequeueMode = assign,typename It>
+	template<DequeueMode dequeueMode = assign, typename It>
 	inline size_t try_dequeue_bulk_from_producer(producer_token_t const& producer, It itemFirst, size_t max)
 	{
 		return static_cast<ExplicitProducer*>(producer.producer)->template dequeue_bulk<dequeueMode>(itemFirst, max);
@@ -2032,8 +2035,8 @@ private:
 					
 					// Dequeue
 					auto& el = *((*block)[index]);
-					if (!MOODYCAMEL_NOEXCEPT_MOVE(T, T&&, details::transfer_to<dequeueMode>(element, el))) {
-						// Make sure the element is still fully dequeued and destroyed even if the assignment
+					if (!MOODYCAMEL_NOEXCEPT_DEQUEUE(dequeueMode, T, T&&, details::transfer_to<dequeueMode>(element, el))) {
+						// Make sure the element is still fully dequeued and destroyed even if transferred
 						// throws
 						struct Guard {
 							Block* block;
@@ -2298,7 +2301,7 @@ private:
 						index_t endIndex = (index & ~static_cast<index_t>(BLOCK_SIZE - 1)) + static_cast<index_t>(BLOCK_SIZE);
 						endIndex = details::circular_less_than<index_t>(firstIndex + static_cast<index_t>(actualCount), endIndex) ? firstIndex + static_cast<index_t>(actualCount) : endIndex;
 						auto block = localBlockIndex->entries[indexIndex].block;
-						if (MOODYCAMEL_NOEXCEPT_MOVE(T, T&&, details::transfer_to<dequeueMode>(details::deref_noexcept(itemFirst), *(*block)[index]))) {
+						if (MOODYCAMEL_NOEXCEPT_DEQUEUE(dequeueMode, T, T&&, details::transfer_to<dequeueMode>(details::deref_noexcept(itemFirst), *(*block)[index]))) {
 							while (index != endIndex) {
 								auto& el = *((*block)[index]);
 								details::transfer_to<dequeueMode>(*itemFirst++, el);
@@ -2582,7 +2585,7 @@ private:
 					auto block = entry->value.load(std::memory_order_relaxed);
 					auto& el = *((*block)[index]);
 					
-					if (!MOODYCAMEL_NOEXCEPT_MOVE(T, T&&, details::transfer_to<dequeueMode>(element, el))) {
+					if (!MOODYCAMEL_NOEXCEPT_DEQUEUE(dequeueMode, T, T&&, details::transfer_to<dequeueMode>(element, el))) {
 #ifdef MCDBGQ_NOLOCKFREE_IMPLICITPRODBLOCKINDEX
 						// Note: Acquiring the mutex with every dequeue instead of only when a block
 						// is released is very sub-optimal, but it is, after all, purely debug code.
@@ -2825,7 +2828,7 @@ private:
 						
 						auto entry = localBlockIndex->index[indexIndex];
 						auto block = entry->value.load(std::memory_order_relaxed);	
-						if (MOODYCAMEL_NOEXCEPT_MOVE(T, T&&, details::transfer_to<dequeueMode>(details::deref_noexcept(itemFirst), *(*block)[index]))) {
+						if (MOODYCAMEL_NOEXCEPT_DEQUEUE(dequeueMode, T, T&&, details::transfer_to<dequeueMode>(details::deref_noexcept(itemFirst), *(*block)[index]))) {
 							while (index != endIndex) {
 								auto& el = *((*block)[index]);
 								details::transfer_to<dequeueMode>(*itemFirst++, el);
